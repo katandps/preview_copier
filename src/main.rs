@@ -1,5 +1,6 @@
 use diesel::prelude::*;
 use std::collections::HashMap;
+use std::fs::copy;
 
 #[macro_use]
 extern crate diesel;
@@ -18,7 +19,27 @@ fn main() {
         map.insert(row.title, row.path);
     }
 
-    dbg!(map.len());
+    let list = std::fs::read_dir("./previews")
+        .expect("error")
+        .map(|res| res.map(|e| e.path()))
+        .collect::<Result<Vec<_>, std::io::Error>>()
+        .expect("error");
+
+    for from in list {
+        let from = from.file_name().unwrap().to_str().unwrap();
+        match map.get(from) {
+            Some(target) => {
+                let from = "./previews/".to_owned() + from + "/preview_music.ogg";
+                let to = target.to_string() + "/preview_music.ogg";
+                println!("{}を{}としてコピーを試みます.", from, to);
+                copy(from, to).expect("コピーに失敗しました.");
+                println!("コピーしました.");
+            }
+            _ => {
+                println!("{} is not found in DB.", from);
+            }
+        }
+    }
 }
 
 #[derive(Queryable)]
